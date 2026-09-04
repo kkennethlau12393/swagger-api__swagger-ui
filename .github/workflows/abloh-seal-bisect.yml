@@ -1,0 +1,24 @@
+name: abloh seal bisect
+on:
+  push:
+    branches: [abloh-seal-bisect]
+  workflow_dispatch:
+jobs:
+  bisect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: seal bisect
+        run: |
+          bash .abloh-seal-bisect/workflow-common.sh swagger-ui "node:24.18.0-bookworm-slim@sha256:6f7b03f7c2c8e2e784dcf9295400527b9b1270fd37b7e9a7285cf83b6951452d" "true" "npm run test:unit" c-plain c-full c-full-nomem c-full-nopids c-full-net c-full-caps c-full-noinit c-full-noswap c-full-mem8g c-plain-warm c-full-warm
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: seal-bisect-swagger-ui
+          path: ${{ runner.temp }}/seal-bisect
