@@ -1,0 +1,37 @@
+name: abloh overlay workspace proof
+on:
+  push:
+    branches: [abloh-overlay-proof]
+  workflow_dispatch:
+jobs:
+  proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: stage the proof driver
+        run: bash .abloh-overlay-proof/setup.sh
+      - name: overlay against image, cold cache before every arm, interleaved
+        working-directory: ${{ runner.temp }}/overlay-proof
+        env:
+          PROOF_COLD: "1"
+          PROOF_KEY: swagger-ui
+          PROOF_REPO_DIR: ${{ github.workspace }}
+          PROOF_IMAGE: "node:24.18.0-bookworm-slim@sha256:6f7b03f7c2c8e2e784dcf9295400527b9b1270fd37b7e9a7285cf83b6951452d"
+          PROOF_PM: ""
+          PROOF_TEST_ARGV: '["npm","run","test:unit"]'
+          PROOF_RUNNER: "command"
+          PROOF_OUT: ${{ runner.temp }}/overlay-proof/result.json
+        run: node driver.mjs 2>&1 | tee ${{ runner.temp }}/overlay-proof/summary.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: overlay-proof-swagger-ui
+          path: |
+            ${{ runner.temp }}/overlay-proof/result.json
+            ${{ runner.temp }}/overlay-proof/summary.txt
