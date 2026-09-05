@@ -1,0 +1,31 @@
+# abloh.yml - read from the PR merge base, so changes are reviewed like code.
+# Keys: https://abloh.dev/docs#config
+
+# % of mechanical breaks in changed lines your tests must catch.
+threshold: 70
+
+# true: below threshold fails the check. Blocks merges only if also marked
+# required in branch protection.
+enforce: true
+
+# The job in your own CI that Abloh's step rides. Abloh reads your workflows to
+# pick it and proves the choice by running there; change it to move the step.
+setup:
+  job: .github/workflows/nodejs.yml::build
+
+# Rebuild recipe for the proof container. Comments name the source file.
+environment:
+  runtimeImage: node:24.18.0-bookworm-slim@sha256:6f7b03f7c2c8e2e784dcf9295400527b9b1270fd37b7e9a7285cf83b6951452d # reviewed Node 24 image (.nvmrc)
+  installDirectory: .
+  setup: .abloh/setup.sh # written by init and yours to edit. Every cold run executes it step by step
+  testCommand: npm run test:unit # set by you
+  identityFiles: # a change here triggers reinstall instead of container reuse
+    - .npmrc
+  environmentValues: # literal values your CI sets; a secret goes in requiredVariables, by name
+    # nodejs.yml::build
+    CI: "true"
+  generatedFiles: # written by your tooling during a run; an undeclared change aborts it
+    # cypress writes into cypress/ when it runs - its screenshots and videos land there by default, and a
+    # CYPRESS_CACHE_FOLDER pointing inside your checkout puts its downloaded binary there too - and git
+    # neither tracks nor ignores it here.
+    - cypress
